@@ -160,7 +160,6 @@ match_data <- read_csv(here("data", "stokes15_survey2007.csv")) %>%
 - Use the `tbl_summary()` function from the `{gtsummary}` package.
 
 ```{r}
-# MAKE NICE!!! - change 0 and 1 
 
 match_data %>%
     select(proposed_turbine_3km, log_home_val_07, p_uni_degree, log_median_inc, log_pop_denc) %>% 
@@ -188,7 +187,7 @@ match_data %>%
 
 **2B.Q2** Describe in your own words why these covariates might be expected to confound the treatment estimate: 
 
-*Response (2-4 sentences):* These variables can influence the treatment because larger precints are associated with more urban regions and therefore, more Liberal preferences. In addition, universty degrees are also associated with more Liberal preferences. 
+*Response (2-4 sentences):* These variables can influence the treatment because larger precincts are associated with more urban regions and therefore, more Liberal preferences. In addition, university degrees are also associated with more Liberal preferences. 
 
 ------------------------------------------------------------------------
 
@@ -244,7 +243,7 @@ summary(match_model)
 
 **2C.Q1** Using the `summary()` output: Which covariate had the largest and smallest `Std. Mean Diff.` before matching. Next, compare largest/smallest `Std. Mean Diff.` after matching. 
 
-*Response:* The covariate with the largest `Std. Mean Diff.` or SMD is `log_home_val_07` and the covariate with the smallest is 
+*Response:* The covariate with the largest `Std. Mean Diff.` or SMD before and after matching was log population density. The covariate with the smallest is log median income. 
 
 
 ------------------------------------------------------------------------
@@ -338,9 +337,8 @@ Using the matched data (Mahalanobis method), estimate the effect of treatment on
 
 ```{r}
 
-reg_match <- matchit(change_liberal ~ proposed_turbine_3km,
-     # Treatment_indicator ~  Pre_treatment_covariates
-  data = match_data
+reg_match <- lm(change_liberal ~ proposed_turbine_3km,
+  data = matched_data
 )
 
 summ(reg_match, model.fit = FALSE)
@@ -348,15 +346,20 @@ summ(reg_match, model.fit = FALSE)
 
 **2F.Q1** Have you identified a causal estimate using this approach: Why or why not? 
 
-*Response:* _________________________
+*Response:* This approach returned significant p values, however it is not enough to determine a causal estimate because other covariates are excluded from the data. 
+
+Balances observable covariates between treated and control groups
+Removes confounding from measured variables (home value, education, income, density)
+Makes treated and control precincts more comparable
 
 **2F.Q2** When using a matching method, what is the main threat to causal identification?
 
-*Response:* _________________________
+*Response:* The main threat to causal identification is omitted variables. Although matching balances observable covariates, the covariates not included in the matching or within the data can confound actual causual relationships. 
 
 **2F.Q3** Describe why the treatment estimate represents the `Average Treatment for the Treated (ATT)` and explain why this is the case relative to estimation of the `Average Treatment Effect (ATE)`.
 
-*Response:* _________________________
+*Response:* The treatment estimate represents the ATT because it only calculates the estimate based on precints that recieved the treatment (within 3km of wind turbines). THis is because the model looks at the predicts the `change_liberal` variable based on the `proposed_turbine_3km` which are only the precincts within the treatmon zone. As opposed to ATE, this is if we randomly assigned the treatment to all the precincts, regardless of turbine proposal or not. 
+
 
 ------------------------------------------------------------------------
 
@@ -545,30 +548,30 @@ sample_40_precincts <- panel_data %>%
 ```{r}
 model1_ff <- lm(perc_lib ~ proposed_turbine + precinct_id + year, data = sample_40_precincts)
 
-summ(model1_ff , model.fit = FALSE)
+summ(model1_ff , model.fit = FALSE, digits = 3)
 ```
 
 ```{r}
-# summ(*** , model.fit = FALSE, [. . .])
+summ(model1_ff, model.fit = FALSE, robust = TRUE)
 ```
 
 **3C.Q1:** Intuition check: Is the *signal-to-noise* ratio for the treatment estimate greater than *2-to-1*?
 
-*Response:* _________________________
+*Response:* The signal to noise ratio for the treatment effect is less than 2 to 1.  
 
 > HINT: Add the argument `digits = 3` to the `summ()` function above
 
 **3C.Q2:** Re-run the `summ()` function using the *heteroscedasticiy robust standard error adjustment* (`robust = TRUE`). Did the standard error (S.E.) estimates change? Explain why. 
 
-*Response:* _________________________
+*Response:* Without the robust=TRUE argument, the SE is 0.031 and with the argument, the SE is 0.04. This changes the standard error because outliers in the dataset are not changing the averages. 
 
 **3C.Q3:** Compare results of the model above to the findings from the fixed effects analysis in the Stokes (2015) study. Why might the results be similar or different? 
 
-*Response:* _________________________
+*Response:* The results for this model are slightly different from those in Stokes (2015) and the p-values for this model show less significance than the original study. This can be due to this model being ran on a sample of the data. 
 
 **3C.Q4:** In your own words, explain why it is advantageous from a causal inference perspective to include year and precinct fixed effects. Explain how between-level and within-level variance is relevant to the problem of omitted variable bias (OVB). 
 
-*Response (2-4 sentences):* _________________________
+*Response (2-4 sentences):* It is important to include year as a fixed effect because year directly relates to election years, policy changes, governance changes, etc. The inclusion of precinct is important because there is natural variation across precincts that can influence the liberal vote. Including between-level or variations across precints and within-level or changes within precincts across time is important because it can help control for other omitted variables not included, such as policy change or precinct voting. 
 
 ------------------------------------------------------------------------
 
@@ -578,16 +581,16 @@ See vignette here: [fixest walkthrough](https://cran.r-project.org/web/packages/
 
 ```{r}
 
-model2_ff <- 
+model2_ff <- fixest::feols(perc_lib ~ proposed_turbine, data = panel_data)
 
-summary()
+summary(model2_ff, cluster = ~precinct_id)
 ```
 
 **3D.Q1:** Interpret the model results and translate findings to be clear to an audience that may not have a background in causal inference (Econometrics) methods.
 
 In panel data settings, why is clustering by precinct important (i.e., `cluster = ~precinct_id`) ?”
 
-*Response (4-6 sentences):* _________________________
+*Response (4-6 sentences):* This model is attempting to show the relationship between proposed wind turbines in precincts within the Ontario region and its impact on local governance vote or whether it influences the Liberal party vote. The model predicts that wind turbines will lead to a 10% decline in liberal vote, showing a significant "p-value" or it is unlikely this relationship is happening by chance. The model shows that for a precinct, there is an average percent of 36% liberal that will drop to 26% after proposed turbines. Clustering by precinct id is important because it accounts for the natural variation across precincts. 
 
 ------------------------------------------------------------------------
 
@@ -595,19 +598,19 @@ In panel data settings, why is clustering by precinct important (i.e., `cluster 
 
 ```{r}
 
-model3_ff <- 
+model3_ff <- fixest::feols(perc_lib ~ operational_turbine, data = panel_data)
 
-summary()
+summary(model3_ff)
 ```
 
 
 **3E.Q1:** Interpret the `model3_ff` results as clearly and **concisely** as you can.
 
-*Response:* _________________________
+*Response:* For precincts with operational turbines, there is a 7% decline in Liberal party vote.  
 
 **3E.Q2:** Why do you think the effect of proposed wind turbines is different from operational wind turbines. Develop your own theory about why incumbent vote share is affected in this way. Use the Stokes (2015) study to inform your response as needed. 
 
-*Response:* _________________________
+*Response:* The effect of proposed wind turbines has a greater effect (10% decline in liberal vote) versus operational wind turbines (7% decline) because when policy are being implemented, many people are interested in involved in hearing about the policies, especially around election times. For precincts will operational turbines, many are unaware about its impacts and do not consider those when voting. 
 
 
 ------------------------------------------------------------------------
