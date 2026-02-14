@@ -115,7 +115,7 @@ Be sure to include a brief description of each of the following key elements of 
 
 **1B.Q5** How do the authors assess the risk of spillovers, and what analytic choice do they make to attempt to mitigate the risk that spillover biases the causal estimate?
 
-*Response:* in order to assess the risk of spillovers, especially considering the affect of turbines on neighboring precincts, the authors redefined treatment in terms of distance to turbines. 
+*Response:* In order to assess the risk of spillovers, especially considering the affect of turbines on neighboring precincts, the authors redefined treatment in terms of distance to turbines. Spillover refers to the effect of wind turbines extending beyond the precincts where turbines are physically located to neighboring precincts. 
 
 
 ------------------------------------------------------------------------
@@ -148,7 +148,7 @@ match_data <- read_csv(here("data", "stokes15_survey2007.csv")) %>%
 
 **2A.Q1** Intuition check: **Why match?** Explain rationale for using this method. 
 
-*Response:* This dataset is ideal for matching because it has many covariates and control observations. In this way, you can take each treated unit and look across another group for the closest match . 
+*Response:* This dataset is ideal for matching because it has many covariates and control observations. In this way, you can take each treated unit and look across another group for the closest match. Matching is a method to compare the average treatment effect by finding two matching pairs, with similar attributes, but the only difference is the treatment effect. This is a method to reduce selection bias. 
 
 ------------------------------------------------------------------------
 
@@ -193,7 +193,7 @@ match_data %>%
 
 **2B.Q3** Intuition check: What type of data do you need to conduct a matching analysis? 
 
-*Response:* In order to conduct a matching analysis, you need to use panel data with many covariates and observaitons. 
+*Response:* In order to conduct a matching analysis, you need to use panel data with many covariates and observations. 
 
 ------------------------------------------------------------------------
 
@@ -277,7 +277,7 @@ love.plot(match_model, stats = "mean.diffs",
 
 **2D.Q1** Interpret the love plot in your own words:
 
-*Response:*The purpose of a love plot is to assess which variables are potentially problematic in this analysis because they have a large SMD. The love plot shows that population density and percent university degree show a large SMD. 
+*Response:*The purpose of a love plot is to assess which variables are potentially problematic in this analysis because they have a large SMD. The love plot shows that population density and percent university degree show a large SMD. A love plot helps us compare the SMD between the unadjusted and adjusted samples. 
 
 ------------------------------------------------------------------------
 
@@ -563,7 +563,7 @@ summ(model1_ff, model.fit = FALSE, robust = TRUE)
 
 **3C.Q2:** Re-run the `summ()` function using the *heteroscedasticiy robust standard error adjustment* (`robust = TRUE`). Did the standard error (S.E.) estimates change? Explain why. 
 
-*Response:* Without the robust=TRUE argument, the SE is 0.031 and with the argument, the SE is 0.04. This changes the standard error because outliers in the dataset are not changing the averages. 
+*Response:* Without the robust=TRUE argument, the SE is 0.031 and with the argument, the SE is 0.04. This changes the standard error because outliers in the dataset are not changing the averages. The argument allows the standard error to not assume constant variance (homoskedasticity). 
 
 **3C.Q3:** Compare results of the model above to the findings from the fixed effects analysis in the Stokes (2015) study. Why might the results be similar or different? 
 
@@ -581,8 +581,11 @@ See vignette here: [fixest walkthrough](https://cran.r-project.org/web/packages/
 
 ```{r}
 
-model2_ff <- fixest::feols(perc_lib ~ proposed_turbine, data = panel_data)
-
+model2_ff <- feols(
+    perc_lib ~ proposed_turbine | year + precinct_id, # Add fixed effects 
+    data = panel_data, 
+    cluster = ~precinct_id # cluster by precinct_id 
+)
 summary(model2_ff, cluster = ~precinct_id)
 ```
 
@@ -590,7 +593,7 @@ summary(model2_ff, cluster = ~precinct_id)
 
 In panel data settings, why is clustering by precinct important (i.e., `cluster = ~precinct_id`) ?”
 
-*Response (4-6 sentences):* This model is attempting to show the relationship between proposed wind turbines in precincts within the Ontario region and its impact on local governance vote or whether it influences the Liberal party vote. The model predicts that wind turbines will lead to a 10% decline in liberal vote, showing a significant "p-value" or it is unlikely this relationship is happening by chance. The model shows that for a precinct, there is an average percent of 36% liberal that will drop to 26% after proposed turbines. Clustering by precinct id is important because it accounts for the natural variation across precincts. 
+*Response (4-6 sentences):* This model examines the relationship between proposed wind turbines and Liberal Party vote share in Ontario precincts. It includes fixed effects for year and precinct ID to control for variation within precincts over time and common trends across all precincts in each election year. The model predicts that proposed wind turbines lead to a 4.2 percentage point decline in Liberal vote share,compared to similar precincts without proposed turbines, with a highly significant p-value (p < 0.001), indicating this relationship is extremely unlikely to be due to chance. For example, in a precinct with an average Liberal vote share of 36%, the presence of a proposed turbine is associated with a decline to approximately 32%. Clustering by precinct id is important because it accounts for the natural variation across precincts. 
 
 ------------------------------------------------------------------------
 
@@ -598,19 +601,24 @@ In panel data settings, why is clustering by precinct important (i.e., `cluster 
 
 ```{r}
 
-model3_ff <- fixest::feols(perc_lib ~ operational_turbine, data = panel_data)
-
-summary(model3_ff)
+model3_ff <-  feols(
+    perc_lib ~ operational_turbine | year + precinct_id, # Add fixed effects 
+    data = panel_data, 
+    cluster = ~precinct_id # cluster by precinct_id 
+)
+    
+summary(model3_ff, model.fit = FALSE)
 ```
 
 
 **3E.Q1:** Interpret the `model3_ff` results as clearly and **concisely** as you can.
 
-*Response:* For precincts with operational turbines, there is a 7% decline in Liberal party vote.  
+*Response:* The results show that operational wind turbines lead to a 9.3 percentage point decline in Liberal vote share compared to similar precincts without operational turbines, with an extraordinarily significant p-value (p < 0.001).  
 
 **3E.Q2:** Why do you think the effect of proposed wind turbines is different from operational wind turbines. Develop your own theory about why incumbent vote share is affected in this way. Use the Stokes (2015) study to inform your response as needed. 
 
-*Response:* The effect of proposed wind turbines has a greater effect (10% decline in liberal vote) versus operational wind turbines (7% decline) because when policy are being implemented, many people are interested in involved in hearing about the policies, especially around election times. For precincts will operational turbines, many are unaware about its impacts and do not consider those when voting. 
+*Response:* The effect of proposed wind turbines has a greater effect (9% decline in liberal vote) versus operational wind turbines (7% decline) because when policy are being implemented, many people are interested in involved in hearing about the policies, especially around election times. For precincts will operational turbines, many are unaware about its impacts and do not consider those when voting. 
+
 
 
 ------------------------------------------------------------------------
